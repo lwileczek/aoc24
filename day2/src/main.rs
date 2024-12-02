@@ -35,6 +35,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let one = p1(&data);
     println!("Part 1: {}", one);
 
+    let two = p2(&data);
+    println!("Part 2: {}", two);
+
     Ok(())
 }
 
@@ -48,48 +51,94 @@ fn convert_data(data: &Vec<String>) -> Result<Vec<Vec<u64>>, WrongCountError> {
     Ok(nums)
 }
 
-fn allow_one(row: &Vec<i64>) -> usize {
-    return 1
+fn slice_without_index(slice: &Vec<u64>, k: usize) -> Vec<u64> {
+    let before = &slice[..k];
+    let after = if slice.len() >= (k + 1) {
+        &slice[(k + 1)..]
+    } else {
+        &[0; 0]
+    };
+    [before, after].concat()
 }
 
+fn determine_incrementor(row: &Vec<u64>, exit: bool) -> bool {
+    if row[0] < row[1] && row[0] >= row[row.len() - 1]
+        || row[0] > row[1] && row[0] <= row[row.len() - 1]
+    {
+        if exit {
+            return false;
+        } else {
+            let without_last = slice_without_index(row, 0);
+            let without_current = slice_without_index(row, 1);
+            return determine_incrementor(&without_last, true)
+                || determine_incrementor(&without_current, true);
+        }
+    }
 
-fn determine_incrementor(row: &Vec<u64>) -> usize {
     if row[0] < row[1] {
-        for val in 1..row.len() {
-            if row[val - 1] >= row[val] {
-                return 0;
-            }
-            if (row[val] - row[val-1]) > 3 {
-                return 0;
+        for idx in 1..row.len() {
+            if row[idx - 1] >= row[idx] || (row[idx] - row[idx - 1]) > 3 {
+                if exit {
+                    return false;
+                } else {
+                    let without_last = slice_without_index(row, idx - 1);
+                    let without_current = slice_without_index(row, idx);
+                    let combine = determine_incrementor(&without_last, true)
+                        || determine_incrementor(&without_current, true);
+                    if !combine {
+                        println!("full: {:?}", row);
+                        println!("missing: {} - {:?}", idx - 1, without_last);
+                        println!("missing: {} - {:?}\n\n", idx, without_current);
+                    }
+
+                    return combine;
+                }
             }
         }
-        return 1;
     } else {
-        for val in 1..row.len() {
-            if row[val - 1] <= row[val] {
-                return 0;
-            }
-            if (row[val-1] - row[val]) > 3 {
-                return 0;
+        for idx in 1..row.len() {
+            if row[idx - 1] <= row[idx] || (row[idx - 1] - row[idx]) > 3 {
+                if exit {
+                    return false;
+                } else {
+                    let without_last = slice_without_index(row, idx - 1);
+                    let without_current = slice_without_index(row, idx);
+                    let combine = determine_incrementor(&without_last, true)
+                        || determine_incrementor(&without_current, true);
+                    if !combine {
+                        println!("full: {:?}", row);
+                        println!("missing: {} - {:?}", idx - 1, without_last);
+                        println!("missing: {} - {:?}\n\n", idx, without_current);
+                    }
+
+                    return combine;
+                }
             }
         }
-        return 1;
     };
+
+    return true;
 }
 
 fn p1(rows: &Vec<Vec<u64>>) -> usize {
     let count = rows.iter().fold(0, |acc, row| {
-        let inc = determine_incrementor(row);
-        acc + inc
+        let valid = determine_incrementor(row, true);
+        if valid {
+            return acc + 1;
+        }
+        acc
     });
 
     count
 }
 
-fn p2(rows: &Vec<Vec<i64>>) -> usize {
+fn p2(rows: &Vec<Vec<u64>>) -> usize {
     let count = rows.iter().fold(0, |acc, row| {
-        let inc = allow_one(row);
-        acc + inc
+        let valid = determine_incrementor(row, false);
+        if valid {
+            return acc + 1;
+        }
+        acc
     });
 
     count
@@ -104,10 +153,11 @@ mod test {
         let data = vec![
             vec![7, 6, 4, 2, 1],
             vec![1, 2, 7, 8, 9],
-            vec![9, 7, 6, 2, 9],
-            vec![1, 3, 2, 4, 9],
-            vec![8, 6, 4, 4, 9],
+            vec![9, 7, 6, 2, 1],
+            vec![1, 3, 2, 4, 5],
+            vec![8, 6, 4, 4, 1],
             vec![1, 3, 6, 7, 9],
+            vec![85, 85, 89, 90, 91],
         ];
 
         let v = p1(&data);
@@ -117,15 +167,26 @@ mod test {
     #[test]
     fn test_p2() {
         let data = vec![
-            vec![7, 6, 4, 2, 1],
-            vec![1, 2, 7, 8, 9],
-            vec![9, 7, 6, 2, 9],
-            vec![1, 3, 2, 4, 9],
-            vec![8, 6, 4, 4, 9],
-            vec![1, 3, 6, 7, 9],
+            vec![7, 6, 4, 2, 1],              // safe
+            vec![1, 2, 7, 8, 9],              // unsafe
+            vec![9, 7, 6, 2, 1],              // unsafe
+            vec![1, 3, 2, 4, 5],              // safe without 3
+            vec![8, 6, 4, 4, 1],              // safe without 4
+            vec![1, 3, 6, 7, 9],              // safe
+            vec![48, 55, 58, 59, 62, 63, 63], // unsafe
+            vec![48, 55, 58, 59, 62, 63, 65], //safe without 0
+            // From reddit
+            vec![48, 46, 47, 49, 51, 54, 56], // safe
+            vec![1, 1, 2, 3, 4, 5],           // safe
+            vec![1, 2, 3, 4, 5, 5],           // safe
+            vec![5, 1, 2, 3, 4, 5],           // safe
+            vec![1, 4, 3, 2, 1],              // safe
+            vec![1, 6, 7, 8, 9],              // safe
+            vec![1, 2, 3, 4, 3],              // safe
+            vec![9, 8, 7, 6, 7],              // safe
         ];
 
         let v = p2(&data);
-        assert_eq!(v, 4);
+        assert_eq!(v, 13);
     }
 }
