@@ -70,19 +70,19 @@ fn p1(data: &Vec<String>) -> u64 {
                         v = v + find_next_char(&matrix, "M", (row as i64, col as i64), (-1, -1));
                     }
                     //check up right
-                    if col < (line.len() - 4) {
+                    if col < (line.len() - 3) {
                         v = v + find_next_char(&matrix, "M", (row as i64, col as i64), (-1, 1));
                     }
                 }
 
                 //check down
-                if row < matrix.len() - 4 {
+                if row < matrix.len() - 3 {
                     //check down left
                     if col > 2 {
                         v = v + find_next_char(&matrix, "M", (row as i64, col as i64), (1, -1));
                     }
                     //check down right
-                    if col < (line.len() - 4) {
+                    if col < (line.len() - 3) {
                         v = v + find_next_char(&matrix, "M", (row as i64, col as i64), (1, 1));
                     }
                 }
@@ -101,7 +101,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_parse() {
+    fn test_p1() {
         let input = r#"MMMSXXMASM
 MSAMXMSMSA
 AMXSXMAAMM
