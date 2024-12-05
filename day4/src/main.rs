@@ -6,8 +6,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let ans = p1(&data);
     println!("Problem 1: {}", ans);
 
-    //let second_answer = p2(&data);
-    //println!("Problem 2: {}", second_answer);
+    let second_answer = p2(&data);
+    println!("Problem 2: {}", second_answer);
     Ok(())
 }
 
@@ -96,6 +96,41 @@ fn p1(data: &Vec<String>) -> u64 {
     (n0 + n1 + (n2 as usize)) as u64
 }
 
+fn is_mas(x: &str, y: &str) -> bool {
+    (x == "S" || x == "M") && (y == "S" || y == "M") && x != y
+}
+
+fn p2(data: &Vec<String>) -> u64 {
+    let left = |x| x - 1;
+    let right = |x: usize| x + 1;
+    let above = |x| x - 1;
+    let below = |x: usize| x + 1;
+
+    let matrix: Vec<Vec<&str>> = data.iter().map(|line| line.split("").collect()).collect();
+    matrix.iter().enumerate().fold(0, |acc, (row, line)| {
+        let c = line.iter().enumerate().fold(0, |sacc, (col, ch)| {
+            if row == 0 || row == matrix.len() - 1 || col == 0 || col == line.len() {
+                return sacc;
+            }
+            let mut v = 0;
+            if *ch == "A" {
+                let ul = matrix[left(row)][above(col)];
+                let br = matrix[right(row)][below(col)];
+
+                let ur = matrix[right(row)][above(col)];
+                let bl = matrix[left(row)][below(col)];
+
+                if is_mas(ul, br) && is_mas(ur, bl) {
+                    v = 1;
+                }
+            }
+
+            sacc + v
+        });
+        acc + c as u64
+    })
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -115,5 +150,22 @@ MXMXAXMASX"#;
         let data: Vec<String> = input.split("\n").map(|s| s.to_string()).collect();
         let r = p1(&data);
         assert_eq!(18, r);
+    }
+
+    #[test]
+    fn test_p2() {
+        let input = r#"MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX"#;
+        let data: Vec<String> = input.split("\n").map(|s| s.to_string()).collect();
+        let r = p2(&data);
+        assert_eq!(9, r);
     }
 }
